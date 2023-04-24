@@ -28,5 +28,6 @@ app.get("/", (req, res) => {
 return res.send("hello word")
 })
 
-
+const userRoute = require('./routes/user')
+app.use("/api/users", userRoute)
 exports.app = functions.https.onRequest(app)
