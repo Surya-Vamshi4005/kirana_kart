@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {LoginBgg} from "../assets"
 import {Logo} from "../assets"
 import {LoginInput} from "../components"
@@ -6,9 +6,14 @@ import {FaEnvelope, FcGoogle} from "../assets/icons"
 import { FaLock } from "../assets/icons"
 import {motion} from "framer-motion"
 import { buttonClcik } from '../animations'
+import {useNavigate} from "react-router-dom"
 
-import {getAuth, signInWithPopup, GoogleAuthProvider} from "firebase/auth"
+import {getAuth, signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword} from "firebase/auth"
 import {app} from "../config/firebase.config"
+import { validateUserJWTToken } from '../api'
+import { setUserDetails } from '../context/actions/userActions'
+import { useDispatch, useSelector } from 'react-redux'
+import { alertInfo, alertWarning } from '../context/actions/alertActions'
 
 const Login = () => {
 
@@ -20,12 +25,29 @@ const Login = () => {
   const firebaseAuth = getAuth(app)
   const provider = new GoogleAuthProvider()
 
+  const navigate = useNavigate()
+  const dispatch = useDispatch()
+
+  const user = useSelector(state => state.user)
+  const alert = useSelector(state => state.alert)
+
+  useEffect(() => {
+    if(user){
+      navigate("/", {replace : true })
+    }
+
+  }, [user])
+
   const loginWithGoogle = async () => {
     await signInWithPopup(firebaseAuth, provider).then(userCred =>{
       firebaseAuth.onAuthStateChanged(cred => {
         if(cred){
           cred.getIdToken().then( token => {
-            console.log(token)
+            validateUserJWTToken(token).then(data => {
+            
+              dispatch(setUserDetails(data))
+            })
+            navigate("/", {replace : true})
           })
         }
       })
@@ -34,6 +56,67 @@ const Login = () => {
   )
 
   }
+
+  const singUPWithEmailPass = async () => {
+    if ( (userEmail === "" || password === "" || confirm_password === "" )) {
+      dispatch(alertInfo('Required fields should not be empty'))
+    }
+    else{
+      if(password === confirm_password){
+        setUserEmail("")
+        setConfirm_password("")
+        setPassword("")
+        await createUserWithEmailAndPassword(firebaseAuth, userEmail, password).then(userCred => {
+          firebaseAuth.onAuthStateChanged(cred => {
+            if(cred){
+              cred.getIdToken().then( token => {
+                validateUserJWTToken(token).then(data => {
+                 
+                  dispatch(setUserDetails(data))
+                })
+                navigate("/", {replace : true})
+              })
+            }
+          })
+        })
+      }
+      else{
+        dispatch(alertWarning("Password doesn't match"))
+      }
+
+    }
+  }
+
+  // actions
+
+  // reducer
+
+  // store -> Globalized
+
+  // dispatch
+
+
+    const signInWithEmailPass = async () => {
+      if((userEmail !== "" && password !== "")) {
+        await signInWithEmailAndPassword(firebaseAuth, userEmail, password).then(userCred => {
+          firebaseAuth.onAuthStateChanged(cred => {
+            if(cred){
+
+              cred.getIdToken().then( token => {
+                validateUserJWTToken(token).then(data => {
+                 
+                  dispatch(setUserDetails(data))
+                })
+                navigate("/", {replace : true})
+              })
+            }
+          })
+        })
+      }
+      else{
+        dispatch(alertWarning("Password doesn't match"))
+      }
+    }
 
   return (
   <div className =" w-screen h-screen relative overflow-hidden flex" >
@@ -73,7 +156,11 @@ const Login = () => {
         ) : ( <p className=" text-gray-300 my-3 " >Already have an Account :{" "} <motion.button {...buttonClcik} className="text-red-400 hover:underline cursor-pointer bg-transparent " onClick={() => setIsSingUp(false)}>Sign-in here</motion.button> </p> )}
         
         {/* button section */}
-        {isSingUp ? <motion.button {...buttonClcik} className="w-full px-4 py-2 my-3 rounded-md bg-red-500 cursor-pointer text-white text-xl capitalize hover:bg-red-700 transition-all duration-150" >Sign Up</motion.button> : <motion.button {...buttonClcik} className="w-full px-4 py-2 rounded-md bg-red-500 cursor-pointer my-4 text-white text-xl capitalize hover:bg-red-700 transition-all duration-150 " >Sign in</motion.button>}
+        {isSingUp ? <motion.button {...buttonClcik} className="w-full px-4 py-2 my-3 rounded-md bg-red-500 cursor-pointer text-white text-xl capitalize hover:bg-red-700 transition-all duration-150" 
+          onClick={singUPWithEmailPass}
+        >Sign Up</motion.button> : <motion.button {...buttonClcik} 
+        onClick={signInWithEmailPass}
+        className="w-full px-4 py-2 rounded-md bg-red-500 cursor-pointer my-4 text-white text-xl capitalize hover:bg-red-700 transition-all duration-150 " >Sign in</motion.button>}
       </div>
 
         <div className="flex-items-center justify-between gap-16">

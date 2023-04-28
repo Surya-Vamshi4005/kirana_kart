@@ -9,6 +9,12 @@
  body{
     font-family: 'Jost', sans-serif, system-ui, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neve', ;
  }
+
+ .MuiPaper-root {
+   width: 100%
+ }
+
+ 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
